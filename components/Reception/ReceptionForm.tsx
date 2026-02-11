@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { Camera, ChevronRight, Save, Send, Printer, CheckCircle, Plus, ShieldAlert } from 'lucide-react';
+import { Camera, ChevronRight, Save, Send, Printer, CheckCircle, Plus, ShieldAlert, Usb } from 'lucide-react';
 import { Order, Checklist, Customer, Device } from '../../types';
 import SignaturePad from './SignaturePad';
 import { useThermalPrint } from '../../hooks/useThermalPrint';
@@ -11,13 +11,15 @@ interface ReceptionFormProps {
 }
 
 const ReceptionForm: React.FC<ReceptionFormProps> = ({ onSave }) => {
-  const { printOrder } = useThermalPrint();
+  const { printOrderBT, printOrderUSB } = useThermalPrint();
   const [step, setStep] = useState(1);
   const [isSuccess, setIsSuccess] = useState(false);
   const [lastOrder, setLastOrder] = useState<Order | null>(null);
+  const [lastCustomer, setLastCustomer] = useState<Partial<Customer>>({});
+  const [lastDevice, setLastDevice] = useState<Partial<Device>>({});
   
-  const [customer, setCustomer] = useState<Partial<Customer>>({ phone: '0412-386-8364' });
-  const [device, setDevice] = useState<Partial<Device>>({ type: 'teléfono' });
+  const [customer, setCustomer] = useState<Partial<Customer>>({ name: '', phone: '0412-386-8364' });
+  const [device, setDevice] = useState<Partial<Device>>({ brand: '', model: '', serial: '', type: 'teléfono' });
   const [checklist, setChecklist] = useState<Checklist>({
     powersOn: false,
     screenCondition: 'Sana',
@@ -55,14 +57,16 @@ const ReceptionForm: React.FC<ReceptionFormProps> = ({ onSave }) => {
     };
     onSave(newOrder, customer, device);
     setLastOrder(newOrder);
+    setLastCustomer(customer);
+    setLastDevice(device);
     setIsSuccess(true);
   };
 
   const resetForm = () => {
     setIsSuccess(false);
     setStep(1);
-    setCustomer({ phone: '0412-386-8364' });
-    setDevice({ type: 'teléfono' });
+    setCustomer({ name: '', phone: '0412-386-8364' });
+    setDevice({ brand: '', model: '', serial: '', type: 'teléfono' });
     setChecklist({ powersOn: false, screenCondition: 'Sana', chargingPort: 'Funciona', battery: 'Normal', liquidDamage: false, previousRepair: false });
     setSignature('');
     setPhotos([]);
@@ -79,10 +83,15 @@ const ReceptionForm: React.FC<ReceptionFormProps> = ({ onSave }) => {
           <p className="text-slate-500 mt-2 font-medium">La orden #{lastOrder?.orderNumber} ha sido registrada.</p>
         </div>
         <div className="grid gap-3 pt-4">
-          <button onClick={() => lastOrder && printOrder(lastOrder, customer as Customer, device as Device)} className="w-full bg-slate-900 text-white py-4 rounded-2xl font-bold flex items-center justify-center gap-2 hover:bg-slate-800 transition-colors">
-            <Printer size={20} /> IMPRIMIR TICKET (Bluetooth)
-          </button>
-          <button onClick={() => lastOrder && sendWhatsAppOrder(lastOrder, customer as Customer, device as Device)} className="w-full bg-green-600 text-white py-4 rounded-2xl font-bold flex items-center justify-center gap-2 hover:bg-green-700 transition-colors">
+          <div className="grid grid-cols-2 gap-3">
+             <button onClick={() => lastOrder && printOrderBT(lastOrder, lastCustomer as Customer, lastDevice as Device)} className="bg-slate-900 text-white py-4 rounded-2xl font-bold flex flex-col items-center justify-center gap-1 hover:bg-slate-800 transition-colors text-xs">
+              <Printer size={20} /> BLUETOOTH
+            </button>
+            <button onClick={() => lastOrder && printOrderUSB(lastOrder, lastCustomer as Customer, lastDevice as Device)} className="bg-blue-600 text-white py-4 rounded-2xl font-bold flex flex-col items-center justify-center gap-1 hover:bg-blue-700 transition-colors text-xs">
+              <Usb size={20} /> USB (CABLE)
+            </button>
+          </div>
+          <button onClick={() => lastOrder && sendWhatsAppOrder(lastOrder, lastCustomer as Customer, lastDevice as Device)} className="w-full bg-green-600 text-white py-4 rounded-2xl font-bold flex items-center justify-center gap-2 hover:bg-green-700 transition-colors">
             <Send size={20} /> ENVIAR POR WHATSAPP
           </button>
           <button onClick={resetForm} className="w-full bg-blue-50 text-blue-600 py-4 rounded-2xl font-bold flex items-center justify-center gap-2 hover:bg-blue-100 mt-4">
@@ -108,22 +117,22 @@ const ReceptionForm: React.FC<ReceptionFormProps> = ({ onSave }) => {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
               <div className="space-y-1.5">
                 <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Nombre del Cliente</label>
-                <input required type="text" className="w-full p-4 rounded-2xl bg-slate-50 border border-slate-100 focus:ring-2 focus:ring-blue-500 outline-none font-medium" 
+                <input required type="text" className="w-full p-4 rounded-2xl bg-slate-50 border border-slate-100 focus:ring-2 focus:ring-blue-500 outline-none font-medium text-slate-800" 
                   value={customer.name} onChange={e => setCustomer({...customer, name: e.target.value})} />
               </div>
               <div className="space-y-1.5">
                 <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">WhatsApp</label>
-                <input required type="tel" className="w-full p-4 rounded-2xl bg-slate-50 border border-slate-100 focus:ring-2 focus:ring-blue-500 outline-none font-medium"
+                <input required type="tel" className="w-full p-4 rounded-2xl bg-slate-50 border border-slate-100 focus:ring-2 focus:ring-blue-500 outline-none font-medium text-slate-800"
                   value={customer.phone} onChange={e => setCustomer({...customer, phone: e.target.value})} />
               </div>
               <div className="space-y-1.5">
                 <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Marca / Equipo</label>
-                <input required type="text" className="w-full p-4 rounded-2xl bg-slate-50 border border-slate-100 focus:ring-2 focus:ring-blue-500 outline-none font-medium"
+                <input required type="text" className="w-full p-4 rounded-2xl bg-slate-50 border border-slate-100 focus:ring-2 focus:ring-blue-500 outline-none font-medium text-slate-800"
                   value={device.brand} onChange={e => setDevice({...device, brand: e.target.value})} />
               </div>
               <div className="space-y-1.5">
                 <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Modelo o Serial (IMEI)</label>
-                <input required type="text" className="w-full p-4 rounded-2xl bg-slate-50 border border-slate-100 focus:ring-2 focus:ring-blue-500 outline-none font-medium"
+                <input required type="text" className="w-full p-4 rounded-2xl bg-slate-50 border border-slate-100 focus:ring-2 focus:ring-blue-500 outline-none font-medium text-slate-800"
                   value={device.serial} onChange={e => setDevice({...device, serial: e.target.value})} />
               </div>
             </div>

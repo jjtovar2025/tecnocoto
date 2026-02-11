@@ -1,8 +1,9 @@
 {
-  "name": "Copy of Tecno Coto PWA",
-  "description": "Sistema de gestión para taller de reparaciones electrónicas con soporte offline, impresión térmica y envío por WhatsApp.",
+  "name": "Tecno Coto PWA",
+  "description": "Sistema de gestión para taller de reparaciones electrónicas con soporte offline, impresión térmica USB/BT y envío por WhatsApp.",
   "requestFramePermissions": [
     "camera",
-    "bluetooth"
+    "bluetooth",
+    "usb"
   ]
 }

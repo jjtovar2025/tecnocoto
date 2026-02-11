@@ -2,21 +2,40 @@
 import { createClient } from '@supabase/supabase-js';
 import { Order, InventoryItem, ExchangeRate, Customer, Device } from '../types';
 
-const supabaseUrl = process.env.SUPABASE_URL || 'https://your-project.supabase.co';
-const supabaseKey = process.env.SUPABASE_ANON_KEY || 'your-anon-key';
+// Manejo seguro de variables de entorno para evitar fallos en el despliegue (Netlify/Vercel)
+const getSafeEnv = (key: string, fallback: string) => {
+  try {
+    // @ts-ignore
+    return (typeof process !== 'undefined' && process.env && process.env[key]) || fallback;
+  } catch {
+    return fallback;
+  }
+};
 
-// Verificar si la configuración es la por defecto (no configurada)
+const supabaseUrl = getSafeEnv('SUPABASE_URL', 'https://your-project.supabase.co');
+const supabaseKey = getSafeEnv('SUPABASE_ANON_KEY', 'your-anon-key');
+
+// Verificar si la configuración es la por defecto
 const isConfigured = supabaseUrl !== 'https://your-project.supabase.co' && supabaseKey !== 'your-anon-key';
 
 export const supabase = isConfigured ? createClient(supabaseUrl, supabaseKey) : null;
 
-/**
- * MOCK / LOCAL STORAGE FALLBACK SERVICE
- * Permite que la app funcione sin errores si Supabase no está listo.
- */
 const localDb = {
-  get: (key: string) => JSON.parse(localStorage.getItem(`tecno_coto_${key}`) || '[]'),
-  set: (key: string, data: any) => localStorage.setItem(`tecno_coto_${key}`, JSON.stringify(data)),
+  get: (key: string) => {
+    try {
+      const data = localStorage.getItem(`tecno_coto_${key}`);
+      return data ? JSON.parse(data) : [];
+    } catch {
+      return [];
+    }
+  },
+  set: (key: string, data: any) => {
+    try {
+      localStorage.setItem(`tecno_coto_${key}`, JSON.stringify(data));
+    } catch (e) {
+      console.error("Error guardando en localStorage", e);
+    }
+  },
 };
 
 export const dataService = {
@@ -112,14 +131,14 @@ export const dataService = {
   },
 
   async getExchangeRate() {
-    if (!supabase) return localDb.get('settings_rate') || { rate: 382.63, lastUpdate: new Date().toISOString(), source: 'Manual' };
+    if (!supabase) return localDb.get('settings_rate')[0] || { rate: 382.63, lastUpdate: new Date().toISOString(), source: 'Manual' };
     const { data, error } = await supabase.from('settings').select('value').eq('key', 'exchange_rate').single();
-    if (error) return localDb.get('settings_rate');
+    if (error) return localDb.get('settings_rate')[0] || { rate: 382.63, lastUpdate: new Date().toISOString(), source: 'Manual' };
     return data.value;
   },
 
   async updateExchangeRate(rate: ExchangeRate) {
-    localDb.set('settings_rate', rate);
+    localDb.set('settings_rate', [rate]);
     if (!supabase) return;
     await supabase.from('settings').upsert({ key: 'exchange_rate', value: rate });
   }
