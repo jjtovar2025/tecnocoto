@@ -7,7 +7,7 @@ import { useThermalPrint } from '../../hooks/useThermalPrint';
 import { sendWhatsAppOrder } from '../../utils/whatsapp';
 
 interface ReceptionFormProps {
-  onSave: (order: Order) => void;
+  onSave: (order: Order, customer: Partial<Customer>, device: Partial<Device>) => void;
 }
 
 const ReceptionForm: React.FC<ReceptionFormProps> = ({ onSave }) => {
@@ -53,7 +53,7 @@ const ReceptionForm: React.FC<ReceptionFormProps> = ({ onSave }) => {
       photos,
       totalPrice: 0
     };
-    onSave(newOrder);
+    onSave(newOrder, customer, device);
     setLastOrder(newOrder);
     setIsSuccess(true);
   };
